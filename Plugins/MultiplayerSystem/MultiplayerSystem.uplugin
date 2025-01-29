@@ -2,8 +2,8 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"FriendlyName": "MultiplayerSessions",
-	"Description": "Handles online multiplayer sessions",
+	"FriendlyName": "MultiplayerSystem",
+	"Description": "Handles multiplayer interactions",
 	"Category": "Other",
 	"CreatedBy": "Akadeax",
 	"CreatedByURL": "",
@@ -16,19 +16,9 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "MultiplayerSessions",
+			"Name": "MultiplayerSystem",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "OnlineSubsystem",
-			"Enabled": true
-		},
-		{
-			"Name": "OnlineSubsystemSteam",
-			"Enabled": true
 		}
 	]
 }

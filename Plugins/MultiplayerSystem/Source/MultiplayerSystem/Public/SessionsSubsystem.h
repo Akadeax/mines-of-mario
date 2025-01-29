@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Online/CoreOnlineFwd.h"
-#include "MultiplayerSessionsSubsystem.generated.h"
+#include "SessionsSubsystem.generated.h"
 
 // custom delegates for menu classes to bind callbacks to
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerOnCreateSessionComplete, bool, bWasSuccessful);
@@ -24,18 +24,25 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(
 	const FOnlineSessionSearchResult& InviteResult,
 	bool bWasSuccessful
 );
+DECLARE_MULTICAST_DELEGATE_FourParams(
+	FMultiplayerOnSessionInviteReceived,
+	const FUniqueNetId& UserId,
+	const FUniqueNetId& FromId,
+	const FString& AppId,
+	const FOnlineSessionSearchResult& InviteResult
+);
 
 
 /**
  * 
  */
 UCLASS()
-class MULTIPLAYERSESSIONS_API UMultiplayerSessionsSubsystem : public UGameInstanceSubsystem
+class MULTIPLAYERSYSTEM_API USessionsSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	UMultiplayerSessionsSubsystem();
+	USessionsSubsystem();
 
 	// other parts can call these (like a menu)
 	void CreateSession(int32 NumPublicConnections, FString MatchType);
@@ -44,9 +51,12 @@ public:
 	void DestroySession();
 	void StartSession();
 
-	void WaitForInviteAccept();
+	void StartWaitForInviteAccept();
+	void StopWaitForInviteAccept();
+
+	bool GetResolvedConnectString(FName SessionName, FString& OutAddress) const;
 	
-	// custom delegates for menu class to bind callbacks to
+	// these can be listened to from outside
 	FMultiplayerOnCreateSessionComplete MultiplayerOnCreateSessionComplete;
 	FMultiplayerOnFindSessionsComplete MultiplayerOnFindSessionsComplete;
 	FMultiplayerOnJoinSessionComplete MultiplayerOnJoinSessionComplete;
@@ -55,7 +65,7 @@ public:
 	
 	FMultiplayerOnSessionUserInviteAccepted MultiplayerOnSessionUserInviteAccepted;
 	
-protected:
+private:
 	// internal callbacks for delegates to Online session interface delegate list
 	// don't need to be called outside this class
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
@@ -71,7 +81,6 @@ protected:
 		const FOnlineSessionSearchResult& InviteResult
 	);
 
-private:
 	IOnlineSessionPtr SessionInterface;
 	
 	TSharedPtr<FOnlineSessionSettings> LastSessionSettings;

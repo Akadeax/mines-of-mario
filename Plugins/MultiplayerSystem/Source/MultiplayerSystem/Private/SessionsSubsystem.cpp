@@ -1,34 +1,33 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
-#include "MultiplayerSessionsSubsystem.h"
+#include "SessionsSubsystem.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 #include "Online/OnlineSessionNames.h"
 
-UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem()
+USessionsSubsystem::USessionsSubsystem()
 	: CreateSessionCompleteDelegate{ FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete) }
 	, FindSessionsCompleteDelegate{ FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsComplete) }
 	, JoinSessionCompleteDelegate{ FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete) }
 	, DestroySessionCompleteDelegate{ FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySessionComplete) }
 	, StartSessionCompleteDelegate{ FOnStartSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnStartSessionComplete) }
-	, SessionUserInviteAcceptedDelegate{ FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &ThisClass::OnSessionUserInviteAccepted)}
+	, SessionUserInviteAcceptedDelegate{ FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &ThisClass::OnSessionUserInviteAccepted) }
 {
 	const IOnlineSubsystem* OnlineSubsystem{ IOnlineSubsystem::Get() };
 	check(OnlineSubsystem);
-	
-	SessionInterface = OnlineSubsystem->GetSessionInterface();
 	
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
 			-1, 15.f, FColor::Blue,
-			FString::Printf(TEXT("Found subsystem %s"), *OnlineSubsystem->GetSubsystemName().ToString())
+			FString::Printf(TEXT("Initializing sessions with subsystem %s"), *OnlineSubsystem->GetSubsystemName().ToString())
 		);
 	}
+	
+	SessionInterface = OnlineSubsystem->GetSessionInterface();
 }
 
-void UMultiplayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FString MatchType)
+void USessionsSubsystem::CreateSession(int32 NumPublicConnections, FString MatchType)
 {
 	check(SessionInterface);
 
@@ -73,7 +72,7 @@ void UMultiplayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FS
 	}
 }
 
-void UMultiplayerSessionsSubsystem::FindSessions(int32 MaxSearchResults)
+void USessionsSubsystem::FindSessions(int32 MaxSearchResults)
 {
 	check(SessionInterface);
 
@@ -93,7 +92,7 @@ void UMultiplayerSessionsSubsystem::FindSessions(int32 MaxSearchResults)
 	}
 }
 
-void UMultiplayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult& SessionResult)
+void USessionsSubsystem::JoinSession(const FOnlineSessionSearchResult& SessionResult)
 {
 	if (!SessionInterface.IsValid())
 	{
@@ -112,7 +111,7 @@ void UMultiplayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 	}
 }
 
-void UMultiplayerSessionsSubsystem::DestroySession()
+void USessionsSubsystem::DestroySession()
 {
 	if (!SessionInterface.IsValid())
 	{
@@ -130,30 +129,36 @@ void UMultiplayerSessionsSubsystem::DestroySession()
 	}
 }
 
-void UMultiplayerSessionsSubsystem::StartSession()
+void USessionsSubsystem::StartSession()
 {
 }
 
-void UMultiplayerSessionsSubsystem::WaitForInviteAccept()
+void USessionsSubsystem::StartWaitForInviteAccept()
 {
-	if (!SessionInterface.IsValid())
-	{
-		MultiplayerOnSessionUserInviteAccepted.Broadcast({}, false);
-		return;
-	}
-
+	ensureAlwaysMsgf(SessionInterface, TEXT("SessionInterface invalid!"));
 	SessionUserInviteAcceptedDelegateHandle = SessionInterface->AddOnSessionUserInviteAcceptedDelegate_Handle(SessionUserInviteAcceptedDelegate);
 }
 
-void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+void USessionsSubsystem::StopWaitForInviteAccept()
 {
-	check(SessionInterface);
+	ensureAlwaysMsgf(SessionInterface, TEXT("SessionInterface invalid!"));
+	SessionInterface->ClearOnSessionUserInviteAcceptedDelegate_Handle(SessionUserInviteAcceptedDelegateHandle);
+}
+
+bool USessionsSubsystem::GetResolvedConnectString(FName SessionName, FString& OutAddress) const
+{
+	return SessionInterface->GetResolvedConnectString(SessionName, OutAddress);
+}
+
+void USessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	ensureAlwaysMsgf(SessionInterface, TEXT("SessionInterface invalid!"));
 	SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
 
 	MultiplayerOnCreateSessionComplete.Broadcast(bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
+void USessionsSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 {
 	check(SessionInterface);
 	SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
@@ -167,7 +172,7 @@ void UMultiplayerSessionsSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 	MultiplayerOnFindSessionsComplete.Broadcast(LastSessionSearch->SearchResults, bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+void USessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	check(SessionInterface);
 	SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
@@ -175,7 +180,7 @@ void UMultiplayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOn
 	MultiplayerOnJoinSessionComplete.Broadcast(Result);
 }
 
-void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
+void USessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	check(SessionInterface);
 	SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
@@ -188,13 +193,15 @@ void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, 
 	MultiplayerOnDestroySessionComplete.Broadcast(bWasSuccessful);
 }
 
-void UMultiplayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
+void USessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 }
 
-void UMultiplayerSessionsSubsystem::OnSessionUserInviteAccepted(const bool bWasSuccessful, const int32 ControllerId,
+void USessionsSubsystem::OnSessionUserInviteAccepted(const bool bWasSuccessful, const int32 ControllerId,
 	FUniqueNetIdPtr UserId, const FOnlineSessionSearchResult& InviteResult)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Purple, "Invite Accepted");
+
 	check(SessionInterface);
 	SessionInterface->ClearOnSessionUserInviteAcceptedDelegate_Handle(SessionUserInviteAcceptedDelegateHandle);
 	MultiplayerOnSessionUserInviteAccepted.Broadcast(InviteResult, bWasSuccessful);

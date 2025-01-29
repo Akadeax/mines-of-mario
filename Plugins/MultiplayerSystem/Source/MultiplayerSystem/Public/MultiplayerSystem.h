@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-class FMultiplayerSessionsModule : public IModuleInterface
+class FMultiplayerSystemModule : public IModuleInterface
 {
 public:
 
