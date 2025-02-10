@@ -36,43 +36,94 @@ void UFriendsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!ExternalUIInterface) UE_LOG(LogTemp, Warning, TEXT("ExternalUIInterface invalid!"));
 }
 
-void UFriendsSubsystem::ReadFriendsList()
+void UFriendsSubsystem::ReadOnlinePlayers()
 {
 	const bool bSuccess{ FriendsInterface->ReadFriendsList(
 			0, ToString(EFriendsLists::OnlinePlayers),
-			FOnReadFriendsListComplete::CreateUObject(this, &ThisClass::OnReadFriendsListComplete)
+			FOnReadFriendsListComplete::CreateUObject(this, &ThisClass::ReadFriendsListComplete)
 		) };
 
 	if (!bSuccess)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red,
-			TEXT("Failed to read friends list!")
+			TEXT("Failed to read online friends list!")
 		);
 	}
 }
 
-void UFriendsSubsystem::OpenSessionFriendInviteUI()
+void UFriendsSubsystem::ReadInGamePlayers()
+{
+	const bool bSuccess{ FriendsInterface->ReadFriendsList(
+		0, ToString(EFriendsLists::InGamePlayers),
+		FOnReadFriendsListComplete::CreateUObject(this, &ThisClass::ReadFriendsListComplete)
+	) };
+
+	if (!bSuccess)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red,
+			TEXT("Failed to read in game friends list!")
+		);
+	}
+}
+
+void UFriendsSubsystem::OpenSessionFriendInviteUI() const
 {
 	ExternalUIInterface->ShowInviteUI(0);
 }
 
-void UFriendsSubsystem::OpenFriendsUI()
+void UFriendsSubsystem::OpenFriendsUI() const
 {
 	ExternalUIInterface->ShowFriendsUI(0);
 }
 
-void UFriendsSubsystem::OnReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName,
+void UFriendsSubsystem::ReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName,
                                                   const FString& ErrorStr)
 {
+	if (!bWasSuccessful)
+	{
+		if (ListName == ToString(EFriendsLists::OnlinePlayers))
+		{
+			OnlinePlayersRead.Broadcast({});
+		}
+		else if (ListName == ToString(EFriendsLists::InGamePlayers))
+		{
+			InGamePlayersRead.Broadcast({});
+		}
+		
+		UE_LOG(LogTemp, Error, TEXT("%s"), *ErrorStr);
+		return;
+	}
+	
 	TArray<TSharedRef<FOnlineFriend>> Friends;
-	FriendsInterface->GetFriendsList(0, ToString(EFriendsLists::OnlinePlayers), Friends);
-
+	FriendsInterface->GetFriendsList(0, ListName, Friends);
+	
+	TArray<FFriendData> ProcessedFriends;
+	ProcessedFriends.Reserve(Friends.Num());
+	
 	for (const TSharedRef<FOnlineFriend>& Friend : Friends)
 	{
-		// GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Purple,
-		// 	Friend->GetUserId()->ToString()
-		// );
+		FFriendData Data = FFriendData{
+			Friend->GetDisplayName(),
+			Friend->GetUserId()->ToString()
+		};
+
+		ProcessedFriends.Add(MoveTemp(Data));
 	}
+
+	if (ListName == ToString(EFriendsLists::OnlinePlayers))
+	{
+		OnlineFriends = ProcessedFriends;
+		OnlinePlayersRead.Broadcast(OnlineFriends);
+		return;
+	}
+	if (ListName == ToString(EFriendsLists::InGamePlayers))
+	{
+		InGameFriends = ProcessedFriends;
+		InGamePlayersRead.Broadcast(InGameFriends);
+		return;
+	}
+	
+	check(false);
 }
 
 FUniqueNetIdPtr UFriendsSubsystem::CreateUniqueIdFromString(const FString& StringId) const

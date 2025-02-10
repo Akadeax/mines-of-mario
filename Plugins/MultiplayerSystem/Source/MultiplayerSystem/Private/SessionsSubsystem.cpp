@@ -27,6 +27,12 @@ USessionsSubsystem::USessionsSubsystem()
 	SessionInterface = OnlineSubsystem->GetSessionInterface();
 }
 
+void USessionsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	FriendsSubsystem = GetGameInstance()->GetSubsystem<UFriendsSubsystem>();
+}
+
 void USessionsSubsystem::CreateSession(int32 NumPublicConnections, FString MatchType)
 {
 	check(SessionInterface);
@@ -143,6 +149,14 @@ void USessionsSubsystem::StopWaitForInviteAccept()
 {
 	ensureAlwaysMsgf(SessionInterface, TEXT("SessionInterface invalid!"));
 	SessionInterface->ClearOnSessionUserInviteAcceptedDelegate_Handle(SessionUserInviteAcceptedDelegateHandle);
+}
+
+void USessionsSubsystem::InviteUserToSession(const FString& UserId) const
+{
+	SessionInterface->SendSessionInviteToFriend(
+		0, NAME_GameSession,
+		*FriendsSubsystem->CreateUniqueIdFromString(UserId)
+	);
 }
 
 bool USessionsSubsystem::GetResolvedConnectString(FName SessionName, FString& OutAddress) const

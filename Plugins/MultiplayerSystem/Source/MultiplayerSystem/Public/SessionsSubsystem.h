@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FriendsSubsystem.h"
 #include "OnlineSubsystem.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Interfaces/OnlineSessionInterface.h"
@@ -44,6 +45,8 @@ class MULTIPLAYERSYSTEM_API USessionsSubsystem : public UGameInstanceSubsystem
 public:
 	USessionsSubsystem();
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	
 	// other parts can call these (like a menu)
 	void CreateSession(int32 NumPublicConnections, FString MatchType);
 	void FindSessions(int32 MaxSearchResults);
@@ -55,6 +58,8 @@ public:
 	void StopWaitForInviteAccept();
 
 	bool GetResolvedConnectString(FName SessionName, FString& OutAddress) const;
+	
+	UFUNCTION(BlueprintCallable) void InviteUserToSession(const FString& UserId) const;
 	
 	// these can be listened to from outside
 	FMultiplayerOnCreateSessionComplete MultiplayerOnCreateSessionComplete;
@@ -82,6 +87,7 @@ private:
 	);
 
 	IOnlineSessionPtr SessionInterface;
+	TWeakObjectPtr<UFriendsSubsystem> FriendsSubsystem;
 	
 	TSharedPtr<FOnlineSessionSettings> LastSessionSettings;
 	TSharedPtr<FOnlineSessionSearch> LastSessionSearch;

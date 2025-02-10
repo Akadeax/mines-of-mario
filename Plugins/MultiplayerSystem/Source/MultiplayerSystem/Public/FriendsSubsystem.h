@@ -5,8 +5,12 @@
 
 #include "CoreMinimal.h"
 #include "OnlineSubsystem.h"
+#include "FriendData.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "FriendsSubsystem.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOnlinePlayersRead, const TArray<FFriendData>&, FriendsList);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInGamePlayersRead, const TArray<FFriendData>&, FriendsList);
 
 /**
  * 
@@ -18,18 +22,26 @@ class MULTIPLAYERSYSTEM_API UFriendsSubsystem : public UGameInstanceSubsystem
 
 public:
 	UFriendsSubsystem();
-
+	
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
-	UFUNCTION(BlueprintCallable) void ReadFriendsList();
-	UFUNCTION(BlueprintCallable) void OpenSessionFriendInviteUI();
-	UFUNCTION(BlueprintCallable) void OpenFriendsUI();
+	UFUNCTION(BlueprintCallable) void ReadOnlinePlayers();
+	UFUNCTION(BlueprintCallable) void ReadInGamePlayers();
+	
+	UFUNCTION(BlueprintCallable) void OpenSessionFriendInviteUI() const;
+	UFUNCTION(BlueprintCallable) void OpenFriendsUI() const;
+
+	UPROPERTY(BlueprintAssignable) FOnOnlinePlayersRead OnlinePlayersRead;
+	UPROPERTY(BlueprintAssignable) FOnInGamePlayersRead InGamePlayersRead;
+	
+	FUniqueNetIdPtr CreateUniqueIdFromString(const FString& StringId) const;
 	
 private:
-	void OnReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
+	void ReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
 
-	FUniqueNetIdPtr CreateUniqueIdFromString(const FString& StringId) const;
-
+	TArray<FFriendData> OnlineFriends;
+	TArray<FFriendData> InGameFriends;
+	
 	IOnlineFriendsPtr FriendsInterface;
 	IOnlineIdentityPtr IdentityInterface;
 	IOnlineExternalUIPtr ExternalUIInterface;

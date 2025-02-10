@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Interfaces/OnlineSessionInterface.h"
-#include "ServerBrowser.generated.h"
+#include "LobbySelectMenu.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTravelStarted);
 
@@ -13,7 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTravelStarted);
  * 
  */
 UCLASS()
-class MINESOFMARIO_API UServerBrowser : public UUserWidget
+class MINESOFMARIO_API ULobbySelectMenu : public UUserWidget
 {
 	GENERATED_BODY()
 

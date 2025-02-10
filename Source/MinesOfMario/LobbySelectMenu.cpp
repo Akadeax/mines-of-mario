@@ -1,11 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ServerBrowser.h"
+#include "LobbySelectMenu.h"
 
 #include "SessionsSubsystem.h"
-#include "Kismet/GameplayStatics.h"
 
-void UServerBrowser::MenuSetup(int32 SessionNumPublicConnections, FString SessionMatchType, FString SessionLobbyPath)
+void ULobbySelectMenu::MenuSetup(int32 SessionNumPublicConnections, FString SessionMatchType, FString SessionLobbyPath)
 {
 	NumPublicConnections = SessionNumPublicConnections;
 	MatchType = SessionMatchType;
@@ -40,19 +39,19 @@ void UServerBrowser::MenuSetup(int32 SessionNumPublicConnections, FString Sessio
 	SessionsSubsystem->MultiplayerOnSessionUserInviteAccepted.AddUObject(this, &ThisClass::OnUserInviteAccepted);
 }
 
-void UServerBrowser::HostSession()
+void ULobbySelectMenu::HostSession()
 {
 	SessionsSubsystem->CreateSession(NumPublicConnections, MatchType);
 }
 
-void UServerBrowser::OnCreateSessionComplete(bool bWasSuccessful)
+void ULobbySelectMenu::OnCreateSessionComplete(bool bWasSuccessful)
 {
 	if (!bWasSuccessful) return;
 
 	GetWorld()->ServerTravel(LobbyPath);
 }
 
-void UServerBrowser::OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result)
+void ULobbySelectMenu::OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result)
 {
 	FString Address;
 	SessionsSubsystem->GetResolvedConnectString(NAME_GameSession, Address);
@@ -68,7 +67,7 @@ void UServerBrowser::OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Re
 }
 
 
-void UServerBrowser::OnUserInviteAccepted(const FOnlineSessionSearchResult& InviteResult, const bool bWasSuccessful)
+void ULobbySelectMenu::OnUserInviteAccepted(const FOnlineSessionSearchResult& InviteResult, const bool bWasSuccessful)
 {
 	if (SessionsSubsystem == nullptr)
 	{
